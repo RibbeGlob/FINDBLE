@@ -1,0 +1,27 @@
+# Pliki konfiguracyjne ESP-IDF
+sdkconfig.old
+sdkconfig.ci.*
+sdkconfig.defaults*
+
+# Pliki zależności
+dependencies.lock
+
+# Konfiguracja środowiska
+.devcontainer/
+devcontainer.json
+Dockerfile
+
+# Pliki kompilacji
+build/
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.out
+
+# Pliki tymczasowe i IDE
+.vscode/
+*.swp
+*.swo
+*.bak
