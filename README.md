@@ -20,6 +20,7 @@ This project aims to develop a **wireless network** of **ESP32-C3** modules comm
 
 ## 🏗 **Development Phases**
 1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and RPI.
+1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and RPI.
 2. **Signal Tracking Implementation** – Developing methods to detect and analyze signal strength.
 3. **Data Transmission to PC** – Optimizing communication between ESP32 nodes and RPI.
 4. **Spatial Mapping Algorithm** – Creating an efficient way to visualize tracked device locations.
