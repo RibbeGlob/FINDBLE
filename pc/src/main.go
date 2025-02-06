@@ -2,141 +2,109 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"log"
-	"os"
+	"sync"
 
-	"gioui.org/app"
-	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/text"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 	"tinygo.org/x/bluetooth"
 )
 
 var (
-	adapter = bluetooth.DefaultAdapter
-
-	deviceList []string
-
-	scanButton widget.Clickable
-	stopButton widget.Clickable
-
+	adapter    = bluetooth.DefaultAdapter
+	deviceList []bluetooth.ScanResult
 	scanning   bool
 	stopScanCh chan struct{}
-
-	listWidget = &widget.List{
-		List: layout.List{Axis: layout.Vertical},
-	}
-	scrollToTop bool
+	mutex      sync.Mutex
 )
 
 func main() {
-	go func() {
-		w := new(app.Window)
-		if err := run(w); err != nil {
-			log.Fatal(err)
+	myApp := app.New()
+	myWindow := myApp.NewWindow("BLE Scanner")
+	myWindow.Resize(fyne.NewSize(400, 400))
+
+	list := widget.NewList(
+		func() int { return len(deviceList) },
+		func() fyne.CanvasObject { return widget.NewButton("", nil) },
+		func(i widget.ListItemID, obj fyne.CanvasObject) {
+			btn := obj.(*widget.Button)
+			device := deviceList[i]
+			btn.SetText(fmt.Sprintf("%s [%s] RSSI: %d", device.LocalName(), device.Address.String(), device.RSSI))
+			btn.OnTapped = func() {
+				connectToDevice(device)
+			}
+		},
+	)
+
+	scanButton := widget.NewButton("Scan for BLE Devices", func() {
+		if !scanning {
+			go scanBLEDevices(list)
+		} else {
+			log.Println("Scanning is already in progress...")
 		}
-		os.Exit(0)
-	}()
-	app.Main()
+	})
+
+	stopButton := widget.NewButton("Stop Scanning", func() {
+		if scanning {
+			close(stopScanCh)
+		} else {
+			log.Println("No active scan to stop.")
+		}
+	})
+
+	exitButton := widget.NewButton("Exit", func() {
+		myApp.Quit()
+	})
+
+	buttonContainer := container.NewVBox(scanButton, stopButton, exitButton)
+	mainContainer := container.NewBorder(nil, buttonContainer, nil, nil, list)
+
+	myWindow.SetContent(mainContainer)
+	myWindow.ShowAndRun()
 }
 
-func scanBLEDevices(win *app.Window) {
+func scanBLEDevices(list *widget.List) {
 	if err := adapter.Enable(); err != nil {
-		log.Fatalf("Error during startup %v", err)
+		log.Fatalf("Error enabling adapter: %v", err)
 	}
 
+	mutex.Lock()
 	deviceList = nil
-	scanning = true
+	mutex.Unlock()
 
+	scanning = true
 	stopScanCh = make(chan struct{})
+
+	log.Println("Scanning for BLE devices...")
 
 	go func() {
 		err := adapter.Scan(func(a *bluetooth.Adapter, d bluetooth.ScanResult) {
-			deviceInfo := fmt.Sprintf("Device: %s [%s] RSSI: %d",
-				d.LocalName(), d.Address.String(), d.RSSI)
-
-			deviceList = append([]string{deviceInfo}, deviceList...)
-
-			fmt.Println(deviceInfo)
-
-			scrollToTop = true
-			win.Invalidate()
+			mutex.Lock()
+			deviceList = append(deviceList, d)
+			mutex.Unlock()
+			list.Refresh()
 		})
 		if err != nil {
-			log.Printf("Error during scanning %v", err)
+			log.Printf("Error during scanning: %v", err)
 		}
 	}()
 
-	select {
-	case <-stopScanCh:
-		fmt.Println("Użytkownik przerwał skanowanie.")
-	}
+	<-stopScanCh
+	log.Println("Scanning stopped.")
 
 	adapter.StopScan()
 	scanning = false
-
-	win.Invalidate()
 }
 
-func run(window *app.Window) error {
-	theme := material.NewTheme()
-	var ops op.Ops
-
-	for {
-		switch e := window.Event().(type) {
-		case app.DestroyEvent:
-			return e.Err
-
-		case app.FrameEvent:
-			gtx := app.NewContext(&ops, e)
-
-			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					title := material.H1(theme, "BLE Device Scanner")
-					title.Color = color.NRGBA{R: 127, G: 0, B: 0, A: 255}
-					title.Alignment = text.Middle
-					return title.Layout(gtx)
-				}),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{
-						Axis:    layout.Horizontal,
-						Spacing: layout.SpaceEvenly,
-					}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							if scanButton.Clicked(gtx) && !scanning {
-								go scanBLEDevices(window)
-							}
-							return material.Button(theme, &scanButton, "Scan BLE Devices").Layout(gtx)
-						}),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							if stopButton.Clicked(gtx) && scanning {
-								close(stopScanCh)
-							}
-							return material.Button(theme, &stopButton, "Stop Scanning").Layout(gtx)
-						}),
-					)
-				}),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Spacer{Height: 20}.Layout(gtx)
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					if scrollToTop && len(deviceList) > 0 {
-						listWidget.Position.First = 0
-						listWidget.Position.Offset = 0
-						scrollToTop = false
-					}
-					return material.List(theme, listWidget).Layout(gtx, len(deviceList),
-						func(gtx layout.Context, i int) layout.Dimensions {
-							return material.Body1(theme, deviceList[i]).Layout(gtx)
-						},
-					)
-				}),
-			)
-
-			e.Frame(gtx.Ops)
-		}
+func connectToDevice(device bluetooth.ScanResult) {
+	log.Printf("Connecting to device %s [%s]...", device.LocalName(), device.Address.String())
+	peer, err := adapter.Connect(device.Address, bluetooth.ConnectionParams{})
+	if err != nil {
+		log.Printf("Failed to connect to %s: %v", device.LocalName(), err)
+		return
 	}
+	log.Printf("Connected to %s [%s]", device.LocalName(), device.Address.String())
+	defer peer.Disconnect()
 }
