@@ -13,16 +13,16 @@ This project aims to develop a **wireless network** of **ESP32-C3** modules comm
 - **ESP32-C3** – Signal tracking and data transmission.
 - **PC** – Data aggregation, spatial mapping, and coordinate calculations.
 - **C** – Core firmware development for ESP32-C3.
-- **Golang** – Backend processing, data handling, and mapping algorithms on PC.
+- **Python** – Backend processing, data handling, and mapping algorithms on PC.
 
 ## 📅 **Project Timeline**
 **Start Date:** February 2, 2025  
-
+**Resumption of the project and change of assumptions:** March 15, 2025 
 ## 🏗 **Development Phases**
-1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and RPI.
-1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and RPI.
+1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and PC.
+1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and PC.
 2. **Signal Tracking Implementation** – Developing methods to detect and analyze signal strength.
-3. **Data Transmission to PC** – Optimizing communication between ESP32 nodes and RPI.
+3. **Data Transmission to PC** – Optimizing communication between ESP32 nodes and PC.
 4. **Spatial Mapping Algorithm** – Creating an efficient way to visualize tracked device locations.
 5. **Testing & Optimization** – Ensuring reliability, accuracy, and minimal latency in tracking.
 
