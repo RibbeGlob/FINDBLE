@@ -18,6 +18,7 @@ This project aims to develop a **wireless network** of **ESP32-C3** modules comm
 ## 📅 **Project Timeline**
 **Start Date:** February 2, 2025  
 **Resumption of the project and change of assumptions:** March 15, 2025 
+
 ## 🏗 **Development Phases**
 1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and PC.
 1. **ESP32 Network Setup** – Establishing communication between multiple ESP32 and PC.
